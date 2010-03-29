@@ -8,13 +8,20 @@
 \begin{document}
 \thispagestyle{empty}
 \begin{landscape}
-\printheading{Time table $6^\mathsf{th}$ Semester}
+\noindent\printheading{Time table $6^\mathsf{th}$ Semester}
 
 % Define the layout of your time tables
 \setslotsize{2.8cm}{0.3cm}
 \setslotcount {5} {36}
-\settopheight{4}
+\settopheight{3}
 \settextframe{0.8mm}
+
+% Retro
+%\setframetype[t]{1}
+%\seteventcornerradius{0pt}
+
+% Print timestamps into event blocks
+%\setprinttimestamps{2}
 
 % Define event types
 \defineevent{corelecture}{0.0} {0.28}{1.0} {1.0}{1.0}{1.0}
@@ -36,7 +43,7 @@
   \event 3 {1615} {1800} {Numerical Algorithms in Image Analysis} {Bruhn, Weickert} {E1{\tiny 1} 3.06}    {seminar}
   \event 4 {0915} {1100} {Embedded Systems Lecture}               {Finkbeiner}      {E1{\tiny 3} 003}     {corelecture}
   \event 4 {1115} {1300} {Tutorial SysArch}                       {Gwosdek}         {E1{\tiny 3} SR014}   {work}
-  \event 5 {1000} {1100} {Bremser Meeting SysArch}                {SysArch United}  {E1{\tiny 3}}         {work}
+  \event 5 {1000} {1100} {Bremser Meeting}                        {SysArch United}  {E1{\tiny 3}}         {work}
   \event 5 {1115} {1300} {Differential Equations in IPCV Lecture} {Weickert}        {E1{\tiny 3} 001}     {corelecture}
 \end{timetable}
 \end{landscape}
