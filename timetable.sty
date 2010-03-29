@@ -1,0 +1,348 @@
+%
+% timetable.sty
+% von Pascal Gwosdek 
+% http://www.planetk.de/index.php?title=Stundenplan
+%
+% Weitere Modifikationen:
+% Daniel Bader (dbader@mytum.de)
+%
+\NeedsTeXFormat{LaTeX2e}
+\ProvidesPackage{timetable}
+\RequirePackage{ifthen, calc, color, pstricks}
+
+% Simple for loop construct as proposed by N. Setzer
+\newcommand{\forloop}[5][1]
+{
+  \setcounter{#2}{#3}
+  \ifthenelse{#4}
+  {
+    #5
+    \addtocounter{#2}{#1}
+    \forloop[#1]{#2}{\value{#2}}{#4}{#5}
+  }
+  {}
+ }
+% ---
+
+% SansSerif font
+\renewcommand{\familydefault}{\sfdefault}
+
+% Dimensions
+\newlength{\rowheight}
+\newlength{\colwidth}
+\newcounter{rowcount}
+\newcounter{colcount}
+\newlength{\textframe}
+\newlength{\bottomspace}
+\newlength{\totalheight}
+\newlength{\totalwidth}
+\newcounter{timemarks}
+\newcounter{daymarks}
+\newcounter{topheight}
+\newcounter{printtimestamps}
+
+% Predefines
+\setlength{\rowheight}{1.2cm}
+\setlength{\colwidth}{2.8cm}
+\setlength{\textframe}{0.8mm}
+\setlength{\bottomspace}{8pt}
+\setcounter{rowcount}9
+\setcounter{colcount}5
+\setcounter{topheight}{2}
+\setcounter{printtimestamps}{0}
+\newcommand{\bottomstyle}{\scriptsize}
+
+% Event declarations
+\newlength{\lastCol}
+\newlength{\lastRow}
+\newlength{\newcolwidth}
+\newlength{\newrowheight}
+\newlength{\newcolleft}
+\newlength{\newrowtop}
+
+% Helpers
+\newcounter{hourslot}
+\newcounter{durationslots}
+\newcounter{minutesPerSlot}
+
+\newcounter{day}
+\newcounter{column}
+\newcounter{row}
+\newcounter{hour}
+\newcounter{minute}
+\newcounter{minuteStep}
+\newcounter{startHour}
+\newcounter{startMinute}
+\newcounter{endHour}
+\newcounter{endMinute}
+\newcounter{hoursset}
+\setcounter{hoursset}{0}
+\newcounter{hourzero}
+
+\newcommand{\settopheight}[1]
+{
+    \addtocounter{rowcount}{#1-\value{topheight}}
+    \setcounter{topheight}{#1}
+}
+
+\newcommand{\setprinttimestamps}[1]
+{
+    \setcounter{printtimestamps}{#1}
+}
+
+\newcommand{\setbottomstyle}[1]
+{
+    \renewcommand{\bottomstyle}{#1}
+}
+
+\newcommand{\setbottomspace}[1]
+{
+    \setlength{\bottomspace}{#1}
+}
+
+\newcommand{\fmtTime}[2]
+{
+    % Arguments: {hour}{minute}
+    \ifthenelse{\value{#1} < 10}{0}{}\arabic{#1}:\ifthenelse{\value{#2} < 10}{0}{}\arabic{#2}
+}
+
+\newcommand{\slotevent}[7]
+  {
+    % Arguments: {x}{y}{duration}{title}{lecturer}{place}{type}{textcolor}
+    \renewcommand{\baselinestretch}{0.75}\normalsize
+    \setlength{\lastRow}{-#2\rowheight}
+    \addtolength{\lastRow}{-#3\rowheight}
+    \setlength{\lastCol}{#1\colwidth}
+    \addtolength{\lastCol}{\colwidth}
+    \psframe[fillcolor=#7block,fillstyle=solid,linestyle=none](#1\colwidth,-#2\rowheight)(\lastCol,\lastRow)
+
+    \setlength{\newrowheight}{\rowheight}
+    \addtolength{\newrowheight}{-2\textframe}
+    \setlength{\newcolwidth}{\colwidth}
+    \addtolength{\newcolwidth}{-2\textframe}
+
+    \setlength{\newrowtop}{-#2\rowheight}
+    \addtolength{\newrowtop}{-\textframe}
+    \setlength{\newcolleft}{#1\colwidth}
+    \addtolength{\newcolleft}{\textframe}
+
+    \ifthenelse{\value{hoursset} = 0}{\setcounter{printtimestamps}{0}}{}
+
+    \rput[tl](\newcolleft,\newrowtop){\begin{minipage}[t]{\newcolwidth}\raggedright \color{#7text}\ifthenelse{\value{printtimestamps} > 0}{{\tiny \fmtTime{startHour}{startMinute}}\ifthenelse{\value{printtimestamps} = 2}{{\tiny -- \fmtTime{endHour}{endMinute}}}{} \\}{}{#4}\end{minipage}}
+
+    \renewcommand{\baselinestretch}{0.5}\normalsize
+    \setlength{\newrowtop}{\lastRow}
+    \addtolength{\newrowtop}{2\textframe}
+    \addtolength{\newrowtop}{\bottomspace}
+
+    \rput[lt](\newcolleft,\newrowtop){\begin{minipage}[t]{0.6\newcolwidth}\raggedright \color{#7text}{\bottomstyle \ifthenelse{\value{printtimestamps} = 1}{\tiny \fmtTime{endHour}{endMinute}}{} #5}\end{minipage}}
+
+    \setlength{\newcolleft}{\lastCol}
+    \addtolength{\newcolleft}{-\textframe}
+
+    \rput[rt](\newcolleft,\newrowtop){\begin{minipage}[t]{0.4\newcolwidth}\raggedleft \color{#7text}{\bottomstyle #6}\end{minipage}}
+    \renewcommand{\baselinestretch}{1.0}\normalsize
+  }
+
+\newcommand{\event}[7]
+  {
+    % Arguments: {day}{start}{end}{title}{lecturer}{place}{type}{textcolor}
+
+    % Use the time format, if hours are defined, and a slot number otherwise:
+    \ifthenelse{\value{hoursset} > 0}
+    {
+      \setcounter{startHour}{#2 / 100}
+      \setcounter{startMinute}{#2 - #2 / 100 * 100}
+
+      \setcounter{endHour}{#3 / 100}
+      \setcounter{endMinute}{#3 - #3 / 100 * 100}
+	
+      \setcounter{hourslot}{((#2 - \value{hourzero}) / 100 * (60 / \value{minutesPerSlot})) + 2 + ((#2 - #2 / 100 * 100) / \value{minutesPerSlot})}
+      \setcounter{durationslots}{((#3 - \value{hourzero}) / 100 * (60 / \value{minutesPerSlot})) + 2 + ((#3 - #3 / 100 * 100) / \value{minutesPerSlot}) - \value{hourslot}}
+
+      % Compensate for 24h wrap
+      \ifthenelse{\value{hourslot} < 0}{\addtocounter{hourslot}{(24 * (60 / \value{minutesPerSlot}))}}{}
+
+      \addtocounter{hourslot}{\value{topheight}-2}
+    }
+    {
+      \setcounter{hourslot}{#2}
+      \setcounter{durationslots}{#3-#2}
+    }
+
+    \slotevent{#1}{\value{hourslot}}{\value{durationslots}}{#4}{#5}{#6}{#7}
+  }
+
+\newcommand{\legend}[3]
+  {
+    % Arguments: <horizontal> <vertical> <text>
+    % Lets you manually set slot contents (use this really rarely and
+    % SEE: \daymark, \timemark )
+
+    \setlength{\lastCol}{#1\colwidth}
+    \setlength{\lastRow}{-\value{topheight}\rowheight-#2\rowheight+\rowheight}
+    \setlength{\newrowtop}{\lastRow}
+    \setlength{\newcolleft}{\lastCol}
+    \addtolength{\newrowtop}{\value{topheight}\rowheight}
+    \addtolength{\newcolleft}{-\colwidth}
+    \psline[linecolor=gray](\newcolleft,\newrowtop)(\newcolleft,\lastRow)
+    \psline[linecolor=gray](\newcolleft,\newrowtop)(\lastCol,\newrowtop)
+    \addtolength{\newcolleft}{\textframe}
+    \addtolength{\newrowtop}{-\textframe}
+    \rput[tl](\newcolleft,\newrowtop){\large #3}
+  }
+
+\newcommand{\timemark}[1]
+  {
+    \stepcounter{timemarks}
+    \legend 1 {\value{timemarks}} {#1}
+  }
+
+\newcommand{\daymark}[1]
+  {
+    \stepcounter{daymarks}
+    \legend {\value{daymarks}} 1 {#1}
+  }
+
+\newcommand{\defineevent}[7]
+  {
+    \definecolor{#1block}{rgb}{#2, #3, #4}
+    \definecolor{#1text} {rgb}{#5, #6, #7}
+    \newrgbcolor{#1block}{#2 #3 #4}
+    \newrgbcolor{#1text} {#5 #6 #7}
+  }
+
+\newcommand{\printheading}[1]
+  {
+    {\LARGE #1}\hfill\\\hfill\\
+  }
+
+\newcommand{\setslotsize}[2]
+  {
+    % Arguments: <width> <height>
+    % Defines the slot size
+
+    \setlength{\rowheight}{#2}
+    \setlength{\colwidth}{#1}
+  }
+
+\newcommand{\setslotcount}[2]
+  {
+    % Arguments: <days> <hours per day>
+    % Defines the number of slots in both dimensions
+
+    \setcounter{colcount}{#1}
+    \setcounter{rowcount}{#2+\value{topheight}}
+
+    \stepcounter{colcount}
+  }
+
+\newcommand{\settextframe}[1]
+  {
+    % Arguments: <width>
+    % Defines the width of the border of each entry (i.e. the
+    % distance between outer border and text)
+
+    \setlength{\textframe}{#1}
+  }
+
+\newcommand{\hours}[3]
+  {
+    % Arguments: <start hour> <start minute> <print end time?>
+    % Automatically sets the time slots to full hours, beginning with <start hour>
+
+    \setcounter{hoursset}{1}
+    \setcounter{hourzero}{(#1 * 100)}
+
+    \setcounter{hour}{#1}
+    \setcounter{minute}{0}
+    \setcounter{minuteStep}{#2}
+    \setcounter{minutesPerSlot}{\value{minuteStep}}
+
+    \forloop{row}{\value{topheight}}{\value{row} < \value{rowcount}}
+    {
+      \ifthenelse{\value{minute} = 0}{
+	  	\timemark{\fmtTime{hour}{minute}\ifthenelse{#3 > 0}{-\setcounter{hour}{\value{hour}+1}\fmtTime{hour}{minute}\setcounter{hour}{\value{hour}-1}}{}}
+	  }{\stepcounter{timemarks}}
+	  \addtocounter{minute}{#2}
+	  \ifthenelse{\value{minute} = 60}{\stepcounter{hour}\setcounter{minute}{0}}{}	
+      \ifthenelse{\value{hour} > 23}{\addtocounter{hour}{-24}}{}
+    }
+  }
+
+\newcommand{\englishdays}[1]
+  {
+    % Arguments: <number of start day>
+    % Macro for the english week days
+
+    \setcounter{day}{#1}
+
+    \forloop{column}{1}{\value{column} < \value{colcount}}
+    {
+      \ifthenelse{\equal{\value{day}}1}{\daymark{Monday}}{}
+      \ifthenelse{\equal{\value{day}}2}{\daymark{Tuesday}}{}
+      \ifthenelse{\equal{\value{day}}3}{\daymark{Wednesday}}{}
+      \ifthenelse{\equal{\value{day}}4}{\daymark{Thursday}}{}
+      \ifthenelse{\equal{\value{day}}5}{\daymark{Friday}}{}
+      \ifthenelse{\equal{\value{day}}6}{\daymark{Saturday}}{}
+      \ifthenelse{\equal{\value{day}}7}{\daymark{Sunday}}{}
+
+      \stepcounter{day}
+      \ifthenelse{\value{day} > 7}{\addtocounter{day}{-7}}{}
+    }
+  }
+
+\newcommand{\germandays}[1]
+  {
+    % Arguments: <number of start day>
+    % Macro for the english week days
+
+    \setcounter{day}{#1}
+
+    \forloop{column}{1}{\value{column} < \value{colcount}}
+    {
+      \ifthenelse{\equal{\value{day}}1}{\daymark{Montag}}{}
+      \ifthenelse{\equal{\value{day}}2}{\daymark{Dienstag}}{}
+      \ifthenelse{\equal{\value{day}}3}{\daymark{Mittwoch}}{}
+      \ifthenelse{\equal{\value{day}}4}{\daymark{Donnerstag}}{}
+      \ifthenelse{\equal{\value{day}}5}{\daymark{Freitag}}{}
+      \ifthenelse{\equal{\value{day}}6}{\daymark{Samstag}}{}
+      \ifthenelse{\equal{\value{day}}7}{\daymark{Sonntag}}{}
+
+      \stepcounter{day}
+      \ifthenelse{\value{day} > 7}{\addtocounter{day}{-7}}{}
+    }
+  }
+
+\newenvironment{timetable}
+  {
+    % Arguments: None
+    % Starts a new timetable
+
+    % Set the new layout setting
+    \setlength{\totalheight}{-\value{colcount}\rowheight}
+    \addtolength{\totalheight}{-\rowheight}
+    \setlength{\totalwidth}{-\value{rowcount}\colwidth}
+    \addtolength{\totalwidth}{-\colwidth}
+
+    % Reset the counters
+    \setcounter{timemarks}{\value{topheight}}
+    \setcounter{daymarks}{1}
+
+    \begin{pspicture}(0,0)(-\totalwidth,\totalheight)
+
+      % Draw the grey frame
+      \psframe[linestyle=none,fillstyle=solid,fillcolor=lightgray](0,-\value{rowcount}\rowheight)(\colwidth,0)
+      \psframe[linestyle=none,fillstyle=solid,fillcolor=lightgray](0,-\value{topheight}\rowheight)(\value{colcount}\colwidth,0)
+  }
+  {
+      % Draw the contours
+      \psline(0,0)(\value{colcount}\colwidth,0)
+      \psline(\value{colcount}\colwidth,0)(\value{colcount}\colwidth,-\value{rowcount}\rowheight)
+      \psline(\value{colcount}\colwidth,-\value{rowcount}\rowheight)(0,-\value{rowcount}\rowheight)
+      \psline(0,-\value{rowcount}\rowheight)(0,0)
+      \psline(\colwidth,-\value{rowcount}\rowheight)(\colwidth,-\value{topheight}\rowheight)
+      \psline(\colwidth,-\value{topheight}\rowheight)(\value{colcount}\colwidth,-\value{topheight}\rowheight)
+
+    \end{pspicture}
+  }
