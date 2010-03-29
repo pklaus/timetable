@@ -7,9 +7,9 @@
 \usepackage{timetable}
 \usepackage{bold-extra}
 
-\lstset{language=[LaTeX]TeX, basicstyle=\ttfamily, basewidth=0.51em, morekeywords={\settopheight, \setbottomspace, \setbottomstyle, \setprinttimestamps, \printheading,\setslotsize,\setslotcount,\settextframe,\englishdays,\germandays,\timemark,\daymark,\hours,\event,\defineevent,\slotevent,\setframetype,\seteventcornerradius}}
+\lstset{language=[LaTeX]TeX, basicstyle=\ttfamily, basewidth=0.51em, morekeywords={\settopheight, \setbottomspace, \setbottomstyle, \settimestyle, \setprinttimestamps, \printheading,\setslotsize,\setslotcount,\settextframe,\englishdays,\germandays,\timemark,\daymark,\hours,\event,\defineevent,\slotevent,\setframetype,\seteventcornerradius}}
 
-\title{\texttt{timetable} package for \LaTeX\\\normalsize Version 1.4}
+\title{\texttt{timetable} package for \LaTeX\\\normalsize Version 1.41}
 \author{Pascal Gwosdek\\\small Modifications by Daniel Bader}
 
 \begin{document}
@@ -18,7 +18,7 @@
 \section{Introduction}
 Still, in times when organisers are freely available on the net, there is need for a way to print out timetables. Such lists shall not only be informative and contain details suchas speaker, location, and time. They should also be pleasing to the eye and immediately reveal the information they contain. What else could be used for this task, if not \LaTeX?
 
-The present version of \texttt{timetable} is fully compatible to version 1.3, and extends it by a new \texttt{pdflatex} support for which the backend has been entirely redesigned, as well as by several `look\&feel' features. The design including colours and font faces can now be redefined. Note that like its predecessor, version 1.4 is not compatible to 1.2 and below.
+The present version of \texttt{timetable} is fully compatible to version 1.3, and extends it by a new \texttt{pdflatex} support for which the backend has been entirely redesigned, as well as by several `look\&feel' features. The design including colours and font faces can now be redefined. Note that like its predecessor, generation 1.4 is not compatible to 1.2 and below.
 
 \section{Command reference}
 Like in many other \LaTeX\ packages, macros are split into declaration part and body instructions:
@@ -35,6 +35,7 @@ The general layout can be defined by these macros:
 \item \lstinline!\settopheight{rows}! specifies how many slot heights the grey bar at the top should last, the default value is 2.
 \item \lstinline!\setbottomspace{width}! sets the distance of the small entries at the bottom of each cell to some value different to 8pt.
 \item \lstinline!\setbottomstyle{fontsize}! redefines the font size of the footlines in event blocks. It defaults to \lstinline!\scriptsize!.
+\item \lstinline!\settimestyle{fontsize}! redefines the font size of the optional time labels in event blocks. It defaults to \lstinline!\tiny!.
 \item \lstinline!\setprinttimestamps{type}! includes timestamps at top and bottom, if set to 1, and timestamps at the top, if set to 2.
 \item \lstinline!\setframetype[valign]{type}! changes the frame style. \texttt{type} can either be 1 (entries separated by lines), or 2 (entries in checkerboard layout (default)).\texttt{valign} can be one of \texttt{t} (top), \texttt{c} (centered), or \texttt{b} (bottom).
 \item \lstinline!\seteventcornerradius{radius}! defines event corners to be rounded. Admissible values for \texttt{radius} are [0pt..7pt], default is 3pt.

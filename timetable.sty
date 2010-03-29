@@ -79,6 +79,7 @@
 \setcounter{@topheight}{2}
 \setcounter{@printtimestamps}{0}
 \newcommand{\@bottomstyle}{\scriptsize}
+\newcommand{\@timestyle}{\tiny}
 
 % Event declarations
 \newlength{\@startposx}
@@ -169,6 +170,11 @@
     \renewcommand{\@bottomstyle}{#1}
 }
 
+\newcommand{\settimestyle}[1]
+{
+    \renewcommand{\@timestyle}{#1}
+}
+
 \newcommand{\setbottomspace}[1]
 {
     \setlength{\@bottomspace}{#1}
@@ -242,9 +248,9 @@
         {\begin{minipage}[t]{\@newcolwidth}%
           \@ttfont\raggedright\color{@timetable#7text}%
             \ifthenelse{\value{@printtimestamps} > 0}%
-              {{\tiny \@fmtTime{@startHour}{@startMinute}}%
+              {{\@timestyle \@fmtTime{@startHour}{@startMinute}}%
                 \ifthenelse{\value{@printtimestamps} = 2}%
-                  {{\tiny -- \@fmtTime{@endHour}{@endMinute}}}%
+                  {{\@timestyle -- \@fmtTime{@endHour}{@endMinute}}}%
                   {}%
               \\}%
               {}%
@@ -259,11 +265,12 @@
     % Lecturer
     \put(\strip@pt\@newcolleft,\strip@pt\@newrowtop)
         {\begin{minipage}[t]{0.6\@newcolwidth}%
-	  \@ttfont\raggedright\color{@timetable#7text}{\@bottomstyle%
+	  \@ttfont\raggedright\color{@timetable#7text}{\@bottomstyle #5%
+            \vphantom{A}}
             \ifthenelse{\value{@printtimestamps} = 1}%
-              {\tiny \@fmtTime{@endHour}{@endMinute}}%
+              {{\@timestyle \@fmtTime{@endHour}{@endMinute}}}%
               {}%
-          #5}\end{minipage}}
+          \end{minipage}}
 
     \setlength{\@newcolleft}{#1\@colwidth + \@colwidth}
     \addtolength{\@newcolleft}{-\@textframe-0.4\@newcolwidth}
@@ -271,7 +278,8 @@
     % Location
     \put(\strip@pt\@newcolleft,\strip@pt\@newrowtop)
       {\begin{minipage}[t]{0.4\@newcolwidth}%
-        \@ttfont\raggedleft\color{@timetable#7text}{\@bottomstyle #6}%
+        \@ttfont\raggedleft\color{@timetable#7text}{\@bottomstyle #6%
+          \vphantom{A}}%
       \end{minipage}}
 
     \renewcommand{\baselinestretch}{1.0}\normalsize
