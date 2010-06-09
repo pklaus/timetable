@@ -1,5 +1,10 @@
 # Timetable
 
+## How it's going to look like
+
+An example how a timetable created with this LaTeX package (v.1.41) looks like:
+![sample for the style of the timetable](http://img444.imageshack.us/img444/3129/sampletimetable.png)
+
 ## Overview
 
 This is the latest version 1.41 of a LaTeX package for creating one-week timetables as they can frequently be found in universities or schools. It contains bugfixes to 1.4.
