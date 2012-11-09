@@ -1,8 +1,9 @@
 %    timetable.sty - The LaTeX timetable stylesheet V1.4
-%    http://www.planetk.de/index.php?title=Stundenplan
+%    original file: http://www.planetk.de/index.php?title=Stundenplan
 %
 %    Copyright (C) 2007-2009 Pascal Gwosdek
 %    Modifications (C) 2008 Daniel Bader
+%    Modifications (C) 2010-2011 Thomas Gläßle
 %
 %    This program is free software; you can redistribute it and/or modify it
 %    under the terms of the GNU General Public License as published by the
@@ -20,88 +21,119 @@
 
 \NeedsTeXFormat{LaTeX2e}
 \ProvidesPackage{timetable}
-\RequirePackage{ifthen, calc, color}
+\RequirePackage{ifthen, calc, color, intcalc}
 
-% Preset the colors
-\definecolor{ttframecol1}{rgb}{0.8,0.8,0.8}
-\definecolor{ttframecol2}{rgb}{0.7,0.7,0.7}
-\definecolor{ttfontcolor}{rgb}{0.0,0.0,0.0}
-\definecolor{ttlinecol1}{rgb}{0.0,0.0,0.0}
-\definecolor{ttlinecol2}{rgb}{0.0,0.0,0.0}
-
-% Simple for loop construct as proposed by N. Setzer
-\newcommand{\@ttforloop}[5][1]
-{
-  \setcounter{#2}{#3}
-  \ifthenelse{#4}
-  {
-    #5
-    \addtocounter{#2}{#1}
-    \@ttforloop[#1]{#2}{\value{#2}}{#4}{#5}
-  }
-  {}
- }
-
-% SansSerif font
-\newcommand{\timetablefont}{\sffamily}
-\newcommand{\@ttfont}{\timetablefont\selectfont}
+%--------------------------------------------------
+% Box model:
+%   totalwidth =  legendwidth +  canvaswidth
+%   totalheight = legendheight + canvasheight
+%   
+%   canvaswidth =  colcount * slotwidth
+%   canvasheight = rowcount * slotheight
+%   
+%   slotwidth(height) =  2*margin +  eventwidth(height)
+%   legenwidth(height) = 2*padding + legendtextwidth(height)
+%   eventwidth(height) = 2*padding + eventtextwidth(height)
+%
+%   legendwidth =                slotwidth  [default]
+%   legendheight = legendslots * slotheight [default]
+%-------------------------------------------------- 
 
 % Dimensions
-\newlength{\@rowheight}
-\newlength{\@colwidth}
-\newcounter{@rowcount}
-\newcounter{@colcount}
-\newlength{\@textframe}
-\newlength{\@bottomspace}
-\newlength{\@totalheight}
-\newlength{\@totalwidth}
-\newlength{\@toprowheight}
+\newlength{\@slotwidth}     % width of columns in event area
+\newlength{\@slotheight}    % height of slot in event area
+\newcounter{@rowcount}      % number of rows in event area
+\newcounter{@colcount}      % number of columns in event area
+\newlength{\@margin}        % padding between grid and box border in event area
+\newlength{\@padding}       % padding between border and text in event area
+\newlength{\@bottomspace}   % height of location/lecturer field
+\newlength{\@locationwidth} % 
 
-% Arbitrary stuff
-\newcounter{@timemarks}
-\newcounter{@daymarks}
-\newcounter{@topheight}
-\newcounter{@printtimestamps}
+\newlength{\@legendwidth}   % (default calculated)
+\newlength{\@legendheight}  % (default calculated)
+\newlength{\@canvaswidth}   % (calculated)
+\newlength{\@canvasheight}  % (calculated)
+\newlength{\@totalwidth}    % (calculated)
+\newlength{\@totalheight}   % (calculated)
+
+% Format switches
+\newcounter{@printtimestamps}   % 0: none, 1: start, 2: start -- end
+\newcounter{@frametype}         % 1: lines, 2: checkerboard
+\newcounter{@framevalign}       % 0: top, 1: bottom, 2: center
+\newcounter{@tthorizgrid}       % draw horizontal grid
+\newcounter{@ttvertgrid}        % draw vertical grid
+\newlength{\@ttgridstrength}
+\newlength{\@ttlegendgridstrength}
 \newlength{\@cornerradius}
-\newcounter{@frametype}
-\newcounter{@framevalign}
+\newlength{\@innerborderstrength}
+\newlength{\@outerborderstrength}
+
 
 % Predefines
-\setlength{\@cornerradius}{3pt}
-\setcounter{@frametype}2
-\setcounter{@framevalign}2
-\setlength{\@rowheight}{1.2cm}
-\setlength{\@colwidth}{2.8cm}
-\setlength{\@textframe}{0.8mm}
-\setlength{\@bottomspace}{8pt}
-\setcounter{@rowcount}9
-\setcounter{@colcount}5
-\setcounter{@topheight}{2}
+\setlength{\@slotwidth}{4.3cm}
+\setlength{\@slotheight}{0.35cm}
+\setcounter{@rowcount}{40}
+\setcounter{@colcount}{5}
+\setlength{\@margin}{1.0mm}
+\setlength{\@padding}{1.0mm}
+\setlength{\@bottomspace}{0.2cm}
+\setlength{\@legendwidth}{3.5cm}
+\setlength{\@legendheight}{3\@slotheight}
+
 \setcounter{@printtimestamps}{0}
-\newcommand{\@bottomstyle}{\scriptsize}
-\newcommand{\@timestyle}{\tiny}
+\setcounter{@frametype}{2}
+\setcounter{@framevalign}{2}
+\setcounter{@ttvertgrid}{1}
+\setcounter{@tthorizgrid}{1}
+\setlength{\@ttgridstrength}{0.1pt}
+\setlength{\@ttlegendgridstrength}{1pt}
+\setlength{\@cornerradius}{3pt}
+\setlength{\@innerborderstrength}{1pt}
+\setlength{\@outerborderstrength}{1pt}
+
+\newcommand{\@bottomstyle}  {\scriptsize}               % style of lecturer/location field
+\newcommand{\@eventstyle}   {\bfseries}                 % 
+\newcommand{\@timestyle}    {\tiny}
+\newcommand{\timetablefont} {\sffamily}
+\newcommand{\@ttfont}       {\timetablefont\selectfont}
+
+
+% Preset the colors
+\definecolor{ttlegendcolor}     {rgb}{0.8,0.8,0.8}  % legend color 
+\definecolor{ttlegendcolor2}    {rgb}{0.7,0.7,0.7}  % legend color2 for stripes
+\definecolor{ttlegendfontcolor} {rgb}{0.0,0.0,0.0}
+\definecolor{ttouterbordercolor}{rgb}{0.0,0.0,0.0}
+\definecolor{ttinnerbordercolor}{rgb}{0.0,0.0,0.0}
+\definecolor{ttgridcolor}       {rgb}{0.4,0.4,0.4}     % color of grid in event area
+
+
 
 % Event declarations
 \newlength{\@startposx}
 \newlength{\@startposy}
+\newlength{\@eventwidth}
 \newlength{\@eventheight}
-\newlength{\@newcolwidth}
-\newlength{\@newrowheight}
+\newlength{\@eventtextwidth}
+\newlength{\@eventtextheight}
 \newlength{\@newcolleft}
 \newlength{\@newrowtop}
+\newlength{\@newcolwidth}
+\newlength{\@newrowheight}
 
 % Helpers
+\newcounter{@timemarks}
+\newcounter{@daymarks}
 \newcounter{@hourslot}
 \newcounter{@durationslots}
 \newcounter{@minutesperslot}
-\newcounter{@timetablehelp}
+\newcounter{@slotsperhour}
+\newlength{\@cornerdiameter}
 
 \newcounter{@day}
 \newcounter{@column}
 \newcounter{@row}
 \newcounter{@hour}
 \newcounter{@minute}
-\newcounter{@minuteStep}
 \newcounter{@startHour}
 \newcounter{@startMinute}
 \newcounter{@endHour}
@@ -110,174 +142,137 @@
 \setcounter{@hoursset}{0}
 \newcounter{@hourzero}
 
-\newcommand{\seteventcornerradius}[1]
-{
-  \setlength{\@cornerradius}{#1}
-  \ifthenelse{\strip@pt\@cornerradius > 7}
-  {
-    \setlength{\@cornerradius}{7pt}
-  }
-  {
-    \ifthenelse{\strip@pt\@cornerradius < 0}
-    {
-      \setlength{\@cornerradius}{0pt}
-    }
-    {}
-  }
-}
+
+
+% setter functions
 
 \newcommand{\settopheight}[1]
 {
-    \addtocounter{@rowcount}{#1-\value{@topheight}}
-    \setcounter{@topheight}{#1}
+    \setlength{\@legendheight}{#1\@slotheight}
 }
 
 \newcommand{\setframetype}[2][c]
 {
-  % Set frame type
-  \ifthenelse{#2 < 1}
-  {
-    % Lines
-    \setcounter{@frametype}{1}
-  }
-  {
-    \ifthenelse{#2 > 2}
-    {
-      % Checkerboard
-      \setcounter{@frametype}{2}
+    % Set frame type
+    \ifthenelse{#2 < 1} {
+        \setcounter{@frametype}{1}      % 1 => Lines
+    } {
+        \ifthenelse{#2 > 2} {
+            \setcounter{@frametype}{2}  % 2 => Checkerboard
+        } {
+            \setcounter{@frametype}{#2}
+        }
     }
-    {
-      \setcounter{@frametype}{#2}
+    % Caption vertical alignment
+    \ifthenelse{\equal{#1}{b}}{             % 1 => bottom
+        \setcounter{@framevalign}{1}
+    } {
+        \ifthenelse{\equal{#1}{t}}{
+            \setcounter{@framevalign}{0}    % 0 => top
+        } {
+            \setcounter{@framevalign}{2}    % 2 => center
+        }
     }
-  }
-
-  % Caption vertical alignment
-  \ifthenelse{\equal{#1}{b}}
-  {\setcounter{@framevalign}{1}}
-    {\ifthenelse{\equal{#1}{t}}
-    {\setcounter{@framevalign}{0}}
-    {\setcounter{@framevalign}{2}}
-  }
 }
 
-\newcommand{\setprinttimestamps}[1]
-{
-    \setcounter{@printtimestamps}{#1}
-}
+\newcommand{\seteventcornerradius}[1] { \setlength{\@cornerradius}{#1} }
+\newcommand{\setprinttimestamps}[1] { \setcounter{@printtimestamps}{#1} }
+\newcommand{\setbottomstyle}[1] { \renewcommand{\@bottomstyle}{#1} } 
+\newcommand{\seteventstyle}[1] { \renewcommand{\@eventstyle}{#1} } 
+\newcommand{\settimestyle}[1] { \renewcommand{\@timestyle}{#1} }
+\newcommand{\setbottomspace}[1] { \setlength{\@bottomspace}{#1} } 
 
-\newcommand{\setbottomstyle}[1]
-{
-    \renewcommand{\@bottomstyle}{#1}
-}
+% \fmttime{hour}{minute}
+\newcommand{\@fmtTime}[2] { \ifthenelse{\value{#1} < 10}{0}{}\arabic{#1}:\ifthenelse{\value{#2} < 10}{0}{}\arabic{#2} }
 
-\newcommand{\settimestyle}[1]
-{
-    \renewcommand{\@timestyle}{#1}
-}
 
-\newcommand{\setbottomspace}[1]
-{
-    \setlength{\@bottomspace}{#1}
-}
-
-\newcommand{\@fmtTime}[2]
-{
-    % Arguments: {hour}{minute}
-    \ifthenelse{\value{#1} < 10}{0}{}\arabic{#1}:\ifthenelse{\value{#2} < 10}{0}{}\arabic{#2}
-}
-
-\newcommand{\slotevent}[7]
-  {
-    % Arguments: {x}{y}{duration}{title}{lecturer}{place}{type}{textcolor}
+% \slotevent{x}{y}{duration}{title}{lecturer}{place}{type}{textcolor}
+\newcommand{\slotevent}[7] {
     \renewcommand{\baselinestretch}{0.75}\normalsize
 
-    \setlength{\@startposx}{#1\@colwidth+0.5pt}
-    \setlength{\@startposy}{-#2\@rowheight-1.5pt}
-    \setlength{\@eventheight}{#3\@rowheight-1pt}
-    \addtolength{\@startposy}{-\@eventheight}
+    \setlength{\@startposx}{\@slotwidth*(#1)+\@margin}      % left coordinate
+    \setlength{\@startposy}{-\@slotheight*(#2+#3)+\@margin} % bottom coordinate
+    \setlength{\@eventwidth}{\@slotwidth-2\@margin}         % width
+    \setlength{\@eventheight}{#3\@slotheight-2\@margin}     % height
 
+    % colour event box (without corners)
     \addtolength{\@startposx}{\@cornerradius}
-    \put(\strip@pt\@startposx,\strip@pt\@startposy){\textcolor{@timetable#7block}{\rule[-\dp\strutbox]{\@colwidth-1pt-2\@cornerradius}{\@eventheight}}}
+    \putrule{\@startposx}{\@startposy}{\@eventwidth-2\@cornerradius}{\@eventheight}{@timetable#7block}
     \addtolength{\@startposx}{-\@cornerradius}
     \addtolength{\@startposy}{\@cornerradius}
-    \put(\strip@pt\@startposx,\strip@pt\@startposy){\textcolor{@timetable#7block}{\rule[-\dp\strutbox]{\@colwidth-1pt}{\@eventheight-2\@cornerradius}}}
+    \putrule{\@startposx}{\@startposy}{\@eventwidth}{\@eventheight-2\@cornerradius}{@timetable#7block}
     \addtolength{\@startposy}{-\@cornerradius}
 
-    \setlength{\@cornerradius}{2\@cornerradius}
-
+    % draw rounded corners
     \ifthenelse{\strip@pt\@cornerradius > 0}
     {
-      % Left rounded corners
-      \addtolength{\@startposx}{.5\@cornerradius}
-      \addtolength{\@startposy}{.5\@cornerradius-\dp\strutbox}
-      \put(\strip@pt\@startposx,\strip@pt\@startposy){\textcolor{@timetable#7block}{\circle*{\strip@pt\@cornerradius}}}
-      \addtolength{\@startposy}{-.5\@cornerradius+\dp\strutbox}
-      \addtolength{\@startposy}{-.5\@cornerradius-\dp\strutbox+\@eventheight}
-      \put(\strip@pt\@startposx,\strip@pt\@startposy){\textcolor{@timetable#7block}{\circle*{\strip@pt\@cornerradius}}}
-      \addtolength{\@startposy}{.5\@cornerradius+\dp\strutbox-\@eventheight}
-      \addtolength{\@startposx}{-.5\@cornerradius}
-
-      % Right rounded corners
-      \addtolength{\@startposx}{-.5\@cornerradius+\@colwidth-1pt}
-      \addtolength{\@startposy}{.5\@cornerradius-\dp\strutbox}
-      \put(\strip@pt\@startposx,\strip@pt\@startposy){\textcolor{@timetable#7block}{\circle*{\strip@pt\@cornerradius}}}
-      \addtolength{\@startposy}{-.5\@cornerradius+\dp\strutbox}
-      \addtolength{\@startposy}{-.5\@cornerradius-\dp\strutbox+\@eventheight}
-      \put(\strip@pt\@startposx,\strip@pt\@startposy){\textcolor{@timetable#7block}{\circle*{\strip@pt\@cornerradius}}}
-      \addtolength{\@startposy}{.5\@cornerradius+\dp\strutbox-\@eventheight}
-      \addtolength{\@startposx}{.5\@cornerradius-\@colwidth-1pt}
+        \setlength{\@cornerdiameter}{2\@cornerradius}
+        % bottom left   [x+r, y+r]
+        \addtolength{\@startposx}{\@cornerradius}
+        \addtolength{\@startposy}{\@cornerradius}
+        \put(\strip@pt\@startposx,\strip@pt\@startposy){\textcolor{@timetable#7block}{\circle*{\strip@pt\@cornerdiameter}}}
+        \addtolength{\@startposy}{-\@cornerradius}
+        % top left      [x+r, y+w-r]
+        \addtolength{\@startposy}{-\@cornerradius+\@eventheight}
+        \put(\strip@pt\@startposx,\strip@pt\@startposy){\textcolor{@timetable#7block}{\circle*{\strip@pt\@cornerdiameter}}}
+        \addtolength{\@startposy}{\@cornerradius-\@eventheight}
+        \addtolength{\@startposx}{-\@cornerradius}
+        % bottom right  [x+w-r, y+r]
+        \addtolength{\@startposx}{-\@cornerradius+\@eventwidth}
+        \addtolength{\@startposy}{\@cornerradius}
+        \put(\strip@pt\@startposx,\strip@pt\@startposy){\textcolor{@timetable#7block}{\circle*{\strip@pt\@cornerdiameter}}}
+        \addtolength{\@startposy}{-\@cornerradius}
+        % top right     [x+w-r, y+w-r]
+        \addtolength{\@startposy}{-\@cornerradius+\@eventheight}
+        \put(\strip@pt\@startposx,\strip@pt\@startposy){\textcolor{@timetable#7block}{\circle*{\strip@pt\@cornerdiameter}}}
+        \addtolength{\@startposy}{\@cornerradius-\@eventheight}
+        \addtolength{\@startposx}{\@cornerradius-\@eventwidth}
     }{}
 
-    \setlength{\@cornerradius}{0.5\@cornerradius}
+    \setlength{\@eventtextwidth}{\@eventwidth-2\@padding}
+    \setlength{\@eventtextheight}{#3\@slotheight-2\@padding}
+    \setlength{\@newcolleft}{\@slotwidth*(#1)+\@margin+\@padding}
+    \setlength{\@newrowtop}{-#2\@slotheight-\@margin-\@padding}
 
-    \setlength{\@newrowheight}{\@rowheight}
-    \addtolength{\@newrowheight}{-2\@textframe-1pt}
-    \setlength{\@newcolwidth}{\@colwidth}
-    \addtolength{\@newcolwidth}{-2\@textframe-1pt}
+    % \ifthenelse{\value{@hoursset} = 0}{\setcounter{@printtimestamps}{0}}{}
 
-    \setlength{\@newrowtop}{-#2\@rowheight}
-    \addtolength{\@newrowtop}{-2\@textframe}
-    \setlength{\@newcolleft}{#1\@colwidth+.5pt}
-    \addtolength{\@newcolleft}{\@textframe}
-
-    \ifthenelse{\value{@hoursset} = 0}{\setcounter{@printtimestamps}{0}}{}
-
-    % Title
-    \addtolength{\@newrowtop}{-1pt}
+    % Title (to do: optional text align)
     \put(\strip@pt\@newcolleft,\strip@pt\@newrowtop)
-        {\begin{minipage}[t]{\@newcolwidth}%
-          \@ttfont\raggedright\color{@timetable#7text}%
-            \ifthenelse{\value{@printtimestamps} > 0}%
-              {{\@timestyle \@fmtTime{@startHour}{@startMinute}}%
-                \ifthenelse{\value{@printtimestamps} = 2}%
-                  {{\@timestyle -- \@fmtTime{@endHour}{@endMinute}}}%
+        {\begin{minipage}[t][\@eventtextheight]{\@eventtextwidth}%
+            \ifthenelse{\value{@framevalign} = 0}{}{\vspace*{\fill}}%
+              \@ttfont\raggedright\color{@timetable#7text}%
+                \ifthenelse{\value{@printtimestamps} > 0}%
+                  {{\@timestyle \@fmtTime{@startHour}{@startMinute}}%
+                    \ifthenelse{\value{@printtimestamps} = 2}%
+                      {{\@timestyle -- \@fmtTime{@endHour}{@endMinute}}}%
+                      {}%
+                  \\}%
                   {}%
-              \\}%
-              {}%
-            {#4}%
+                {\@eventstyle \begin{center}#4\end{center}}%
+            \ifthenelse{\value{@framevalign} = 1}{}{\vspace*{\fill}}%
          \end{minipage}}
-    \addtolength{\@newrowtop}{1pt}
 
     \renewcommand{\baselinestretch}{0.5}\normalsize
-    \setlength{\@newrowtop}{-#2\@rowheight-#3\@rowheight}
-    \addtolength{\@newrowtop}{2\@textframe + \@bottomspace}
+    \setlength{\@newrowtop}{\@startposy+\@padding+\@bottomspace}
 
-    % Lecturer
+    % Lecturer (to do: optional)
+    %--------------------------------------------------
+    % \put(\strip@pt\@newcolleft,\strip@pt\@newrowtop)
+    %     {\begin{minipage}[t]{0.6\@eventtextwidth}%
+	%   \@ttfont\raggedright\color{@timetable#7text}{\@bottomstyle #5%
+    %         \vphantom{A}}
+    %         \ifthenelse{\value{@printtimestamps} = 1}%
+    %           {{\@timestyle \@fmtTime{@endHour}{@endMinute}}}%
+    %           {}%
+    %       \end{minipage}}
+    %-------------------------------------------------- 
+
+    \setlength{\@locationwidth}{0.8\@eventtextwidth}
+    \setlength{\@newcolleft}{\@startposx + \@eventtextwidth - \@locationwidth}
+
+    % Location (to do: optional)
     \put(\strip@pt\@newcolleft,\strip@pt\@newrowtop)
-        {\begin{minipage}[t]{0.6\@newcolwidth}%
-	  \@ttfont\raggedright\color{@timetable#7text}{\@bottomstyle #5%
-            \vphantom{A}}
-            \ifthenelse{\value{@printtimestamps} = 1}%
-              {{\@timestyle \@fmtTime{@endHour}{@endMinute}}}%
-              {}%
-          \end{minipage}}
-
-    \setlength{\@newcolleft}{#1\@colwidth + \@colwidth}
-    \addtolength{\@newcolleft}{-\@textframe-0.4\@newcolwidth}
-
-    % Location
-    \put(\strip@pt\@newcolleft,\strip@pt\@newrowtop)
-      {\begin{minipage}[t]{0.4\@newcolwidth}%
+      {\begin{minipage}[t]{\@locationwidth}%
         \@ttfont\raggedleft\color{@timetable#7text}{\@bottomstyle #6%
           \vphantom{A}}%
       \end{minipage}}
@@ -293,259 +288,269 @@
     \ifthenelse{\value{@hoursset} > 0}
     {
       \setcounter{@startHour}{#2 / 100}
-      \setcounter{@startMinute}{#2 - #2 / 100 * 100}
-
+      \setcounter{@startMinute}{\intcalcMod{#2}{100}}
       \setcounter{@endHour}{#3 / 100}
-      \setcounter{@endMinute}{#3 - #3 / 100 * 100}
-	
-      \setcounter{@hourslot}{((#2 - \value{@hourzero}) / 100 * (60 / \value{@minutesperslot})) + 2 + ((#2 - #2 / 100 * 100) / \value{@minutesperslot})}
-      \setcounter{@durationslots}{((#3 - \value{@hourzero}) / 100 * (60 / \value{@minutesperslot})) + 2 + ((#3 - #3 / 100 * 100) / \value{@minutesperslot}) - \value{@hourslot}}
+      \setcounter{@endMinute}{\intcalcMod{#3}{100}}
+      
+      \setcounter{@hourslot}{(\value{@startHour}-\value{@hourzero})*\value{@slotsperhour} + \value{@startMinute}/\value{@minutesperslot}}
+      \setcounter{@durationslots}{(\value{@endHour}-\value{@startHour})*\value{@slotsperhour} + (\value{@endMinute}-\value{@startMinute})/\value{@minutesperslot}}
 
       % Compensate for 24h wrap
       \ifthenelse{\value{@hourslot} < 0}{\addtocounter{@hourslot}{(24 * (60 / \value{@minutesperslot}))}}{}
-
-      \addtocounter{@hourslot}{\value{@topheight}-2}
     }
     {
       \setcounter{@hourslot}{#2}
       \setcounter{@durationslots}{#3-#2}
     }
 
-    \slotevent{#1}{\value{@hourslot}}{\value{@durationslots}}{#4}{#5}{#6}{#7}
+    \slotevent{#1-1}{\value{@hourslot}}{\value{@durationslots}}{#4}{#5}{#6}{#7}
   }
 
 \newcommand{\legend}[3]
-  {
+{
     % Arguments: <horizontal> <vertical> <text>
     % Lets you manually set slot contents (use this really rarely and
     % SEE: \daymark, \timemark )
 
-    \setlength{\@newrowtop}{\@rowheight*(-#2+1)-\dp\strutbox}
-    \setlength{\@newcolleft}{#1\@colwidth-\@colwidth}
+    \ifthenelse{#1 < 0} {
+        \setlength{\@newcolleft}{-\@legendwidth}
+        \setlength{\@newcolwidth}{\@legendwidth}
+    } {
+        \setlength{\@newcolleft}{#1\@slotwidth}
+        \setlength{\@newcolwidth}{\@slotwidth}
+    }
+    \ifthenelse{#2 < 0} {
+        \setlength{\@newrowtop}{\@legendheight}
+        \setlength{\@newrowheight}{\@legendheight}
+    } {
+        \setlength{\@newrowtop}{-#2\@slotheight}
+        \setlength{\@newrowheight}{\@slotheight*\value{@slotsperhour}}
+    }
 
-    \ifthenelse{\value{@hoursset} = 0}
-      {\setcounter{@minutesperslot}{60}}
-      {}
-
+    \ifthenelse{\value{@hoursset} = 0} {
+        \setcounter{@minutesperslot}{60}
+    } {}
+    
     % Select frame type
-    \ifthenelse{\value{@frametype} = 1}
-    { % Lines
-      \ifthenelse{#1 = 1}{\put(\strip@pt\@newcolleft,\strip@pt\@newrowtop){\textcolor{ttframecol2}{\rule{\@colwidth}{1pt}}}}{}
-      \addtolength{\@newrowtop}{-\value{@topheight}\@rowheight}
-      \addtolength{\@newcolleft}{-1pt}
-      \ifthenelse{#2 = 1}{\put(\strip@pt\@newcolleft,\strip@pt\@newrowtop){\textcolor{ttframecol2}{\rule{1pt}{\value{@topheight}\@rowheight}}}}{}
-      \addtolength{\@newcolleft}{1pt}
-      \addtolength{\@newrowtop}{\value{@topheight}\@rowheight}
-    }
-    { % Checkerboard
-      % Horizontal stripe
-      \ifthenelse{#2 = 1}
-        {\setcounter{@timetablehelp}{#1 * \real{0.5} * \real{2.0}}
-          \ifthenelse{\value{@timetablehelp} = #1}
-            {\addtolength{\@newrowtop}{-\value{@topheight}\@rowheight}
-             \put(\strip@pt\@newcolleft,\strip@pt\@newrowtop)
-               {\textcolor{ttframecol2}{\rule{\@colwidth}{\value{@topheight}\@rowheight}}}
-             \addtolength{\@newrowtop}{\value{@topheight}\@rowheight}
-            }
-            {}
+    % Lines
+    \ifthenelse{#1 < 0}{                        % horizontal lines
+        \ifthenelse{\value{@frametype} = 1} {   % legend lines
+            \putrule{\@newcolleft}{\@newrowtop}{\@legendwidth}{\@ttlegendgridstrength}{ttlegendcolor2}
+        }{                                      % legend stripes (checkerboard)
+            \ifthenelse{\intcalcMod{#2}{2*\value{@slotsperhour}} = 0} {
+                \putrule{\@newcolleft}{\@newrowtop-\@newrowheight}{\@legendwidth}{\@newrowheight}{ttlegendcolor2}
+            } {}
         }
-        {}
-      % Vertical stripe
-      \ifthenelse{#1 = 1}
-        {\setcounter{@timetablehelp}{(((#2-\value{@topheight}-1) * \value{@minutesperslot} / 120) * 2) - ((#2-\value{@topheight}-1) * \value{@minutesperslot} / 60)}
-          \ifthenelse{\value{@timetablehelp} = 0}
-            {\setcounter{@timetablehelp}{60 / \value{@minutesperslot}}
-             \addtolength{\@newrowtop}{-\value{@timetablehelp}\@rowheight}
-             \put(\strip@pt\@newcolleft,\strip@pt\@newrowtop)
-               {\textcolor{ttframecol2}{\rule{\@colwidth}{\value{@timetablehelp}\@rowheight}}}
-             \addtolength{\@newrowtop}{\value{@timetablehelp}\@rowheight}
-            }
-            {}
-        }
-        {}
-    }
-
-    % Print text
-    \addtolength{\@newcolleft}{\@textframe}
-    \addtolength{\@newrowtop}{-\@textframe-\heightof{\large #3}}
-
-    % Optionally move caption to middle or bottom
-    \ifthenelse{\value{@framevalign} > 0}
-    {
-      \ifthenelse{#1 = 1}
-      {
-        \addtolength{\@newrowtop}{(- \@rowheight * (60 / \value{@minutesperslot}) + 2\@textframe + \heightof{\Large #3})/\value{@framevalign}}
-      }
-      {
-        \ifthenelse{#2 = 1}
-        {
-          \addtolength{\@newrowtop}{(- \value{@topheight}\@rowheight + 2\@textframe + \heightof{\Large #3})/\value{@framevalign}}
+        \ifthenelse{\value{@tthorizgrid} = 1} { % event grid lines
+            \putrule{0cm}{\@newrowtop}{\@canvaswidth}{\@ttgridstrength}{ttgridcolor}
         }{}
-      }
+    }{}
+    \ifthenelse{#2 < 0}{                        % vertical lines
+        \ifthenelse{\value{@frametype} = 1}{    % legend lines
+            \putrule{\@newcolleft}{0cm}{\@ttlegendgridstrength}{\@legendheight}{ttlegendcolor2}
+        }{
+            \ifthenelse{\intcalcMod{#1}{2} = 0} {
+                \putrule{\@newcolleft}{0cm}{\@slotwidth}{\@legendheight}{ttlegendcolor2}
+            } {}
+        }
+        \ifthenelse{\value{@ttvertgrid} = 1} {  % event grid lines
+            \putrule{\@newcolleft}{-\@canvasheight}{\@ttgridstrength}{\@canvasheight}{ttgridcolor}
+        } { }
     }{}
 
-    \put(\strip@pt\@newcolleft,\strip@pt\@newrowtop){\makebox{\textcolor{ttfontcolor}{\@ttfont\large #3}}}
-  }
+
+    % Print text
+    {\@ttfont\large                                            %1ex = ugly hack to make it look right (adjust for font height?)
+     \putminipage{\@newcolleft+\@padding}{\@newrowtop-\@padding-1ex}{\@newcolwidth-2\@padding}{\@newrowheight-2\@padding}{%
+        \ifthenelse{\value{@framevalign} = 0}{}{\vspace*{\fill}} %
+         \begin{center}
+            \textcolor{ttlegendfontcolor}{#3}
+         \end{center}
+        \ifthenelse{\value{@framevalign} = 1}{}{\vspace*{\fill}}%
+     }
+    }
+}
 
 \newcommand{\timemark}[1]
-  {
+{
+    \legend {-1} {\value{@timemarks}} {#1}
     \stepcounter{@timemarks}
-    \legend 1 {\value{@timemarks}} {#1}
-  }
+}
 
 \newcommand{\daymark}[1]
-  {
+{
+    \legend {\value{@daymarks}} {-1} {#1}
     \stepcounter{@daymarks}
-    \legend {\value{@daymarks}} 1 {#1}
-  }
+}
 
 \newcommand{\defineevent}[7]
-  {
+{
     \definecolor{@timetable#1block}{rgb}{#2, #3, #4}
     \definecolor{@timetable#1text} {rgb}{#5, #6, #7}
-  }
-
-\newcommand{\printheading}[1]
-  {
-    {\@ttfont\LARGE #1}\par\vspace{5mm}\par
-  }
+}
 
 \newcommand{\setslotsize}[2]
-  {
+{
     % Arguments: <width> <height>
-    % Defines the slot size
-
-    \setlength{\@rowheight}{#2}
-    \setlength{\@colwidth}{#1}
-  }
+    \setlength{\@slotwidth}{#1}
+    \setlength{\@slotheight}{#2}
+}
 
 \newcommand{\setslotcount}[2]
-  {
+{
     % Arguments: <days> <hours per day>
-    % Defines the number of slots in both dimensions
-
     \setcounter{@colcount}{#1}
-    \setcounter{@rowcount}{#2+\value{@topheight}}
+    \setcounter{@rowcount}{#2}
+}
 
-    \stepcounter{@colcount}
-  }
-
-\newcommand{\settextframe}[1]
-  {
-    % Arguments: <width>
-    % Defines the width of the border of each entry (i.e. the
-    % distance between outer border and text)
-
-    \setlength{\@textframe}{#1}
-  }
 
 \newcommand{\hours}[3]
-  {
+{
     % Arguments: <start hour> <minute stepping> <print end time?>
     % Automatically sets the time slots to full hours, beginning with <start hour>
-
     \setcounter{@hoursset}{1}
-    \setcounter{@hourzero}{(#1 * 100)}
+    \setcounter{@hourzero}{#1}
+    \setcounter{@minutesperslot}{#2}
+    \setcounter{@slotsperhour}{60 / \calcgcd{60}{#2}}
 
     \setcounter{@hour}{#1}
     \setcounter{@minute}{0}
-    \setcounter{@minuteStep}{#2}
-    \setcounter{@minutesperslot}{\value{@minuteStep}}
-
-    \@ttforloop{@row}{\value{@topheight}}{\value{@row} < \value{@rowcount}}
+    \@ttforloop{@row}{0}{\value{@row} < \value{@rowcount}}
     {
-      \ifthenelse{\value{@minute} = 0}{
-	  	\timemark{\@fmtTime{@hour}{@minute}\ifthenelse{#3 > 0}{-\setcounter{@hour}{\value{@hour}+1}\@fmtTime{@hour}{@minute}\setcounter{@hour}{\value{@hour}-1}}{}}
-	  }{\stepcounter{@timemarks}}
-	  \addtocounter{@minute}{#2}
-	  \ifthenelse{\value{@minute} = 60}{\stepcounter{@hour}\setcounter{@minute}{0}}{}	
-      \ifthenelse{\value{@hour} > 23}{\addtocounter{@hour}{-24}}{}
+        \ifthenelse{\value{@minute} = 0} {
+            \timemark{\@fmtTime{@hour}{@minute}\ifthenelse{#3 > 0}{-\setcounter{@hour}{\value{@hour}+1}\@fmtTime{@hour}{@minute}\setcounter{@hour}{\value{@hour}-1}}{}}
+        } {
+            \stepcounter{@timemarks}
+        }
+        \addtocounter{@minute}{#2}
+        \ifthenelse{\value{@minute} < 60} {
+        } {
+            \stepcounter{@hour}
+            \setcounter{@minute}{0}
+        }	
+        \ifthenelse{\value{@hour} > 23}{
+            \addtocounter{@hour}{-24}
+        } { }
     }
-  }
+}
 
 \newcommand{\englishdays}[1]
-  {
+{
     % Arguments: <number of start day>
-    % Macro for the english week days
-
     \setcounter{@day}{#1}
-
-    \@ttforloop{@column}{1}{\value{@column} < \value{@colcount}}
+    \@ttforloop{@column}{0}{\value{@column} < \value{@colcount}}
     {
-      \ifthenelse{\equal{\value{@day}}1}{\daymark{Monday}}{}
-      \ifthenelse{\equal{\value{@day}}2}{\daymark{Tuesday}}{}
-      \ifthenelse{\equal{\value{@day}}3}{\daymark{Wednesday}}{}
-      \ifthenelse{\equal{\value{@day}}4}{\daymark{Thursday}}{}
-      \ifthenelse{\equal{\value{@day}}5}{\daymark{Friday}}{}
-      \ifthenelse{\equal{\value{@day}}6}{\daymark{Saturday}}{}
-      \ifthenelse{\equal{\value{@day}}7}{\daymark{Sunday}}{}
-
-      \stepcounter{@day}
-      \ifthenelse{\value{@day} > 7}{\addtocounter{@day}{-7}}{}
+        \ifthenelse{\equal{\value{@day}}1}{\daymark{Monday}}{}
+        \ifthenelse{\equal{\value{@day}}2}{\daymark{Tuesday}}{}
+        \ifthenelse{\equal{\value{@day}}3}{\daymark{Wednesday}}{}
+        \ifthenelse{\equal{\value{@day}}4}{\daymark{Thursday}}{}
+        \ifthenelse{\equal{\value{@day}}5}{\daymark{Friday}}{}
+        \ifthenelse{\equal{\value{@day}}6}{\daymark{Saturday}}{}
+        \ifthenelse{\equal{\value{@day}}7}{\daymark{Sunday}}{}
+        \stepcounter{@day}
+        \ifthenelse{\value{@day} > 7}{\addtocounter{@day}{-7}}{}
     }
-  }
+}
 
 \newcommand{\germandays}[1]
-  {
+{
     % Arguments: <number of start day>
-    % Macro for the english week days
-
     \setcounter{@day}{#1}
-
-    \@ttforloop{@column}{1}{\value{@column} < \value{@colcount}}
+    \@ttforloop{@column}{0}{\value{@column} < \value{@colcount}}
     {
-      \ifthenelse{\equal{\value{@day}}1}{\daymark{Montag}}{}
-      \ifthenelse{\equal{\value{@day}}2}{\daymark{Dienstag}}{}
-      \ifthenelse{\equal{\value{@day}}3}{\daymark{Mittwoch}}{}
-      \ifthenelse{\equal{\value{@day}}4}{\daymark{Donnerstag}}{}
-      \ifthenelse{\equal{\value{@day}}5}{\daymark{Freitag}}{}
-      \ifthenelse{\equal{\value{@day}}6}{\daymark{Samstag}}{}
-      \ifthenelse{\equal{\value{@day}}7}{\daymark{Sonntag}}{}
-
-      \stepcounter{@day}
-      \ifthenelse{\value{@day} > 7}{\addtocounter{@day}{-7}}{}
+        \ifthenelse{\equal{\value{@day}}1}{\daymark{Montag}}{}
+        \ifthenelse{\equal{\value{@day}}2}{\daymark{Dienstag}}{}
+        \ifthenelse{\equal{\value{@day}}3}{\daymark{Mittwoch}}{}
+        \ifthenelse{\equal{\value{@day}}4}{\daymark{Donnerstag}}{}
+        \ifthenelse{\equal{\value{@day}}5}{\daymark{Freitag}}{}
+        \ifthenelse{\equal{\value{@day}}6}{\daymark{Samstag}}{}
+        \ifthenelse{\equal{\value{@day}}7}{\daymark{Sonntag}}{}
+        \stepcounter{@day}
+        \ifthenelse{\value{@day} > 7}{\addtocounter{@day}{-7}}{}
     }
-  }
+}
 
 \newenvironment{timetable}%
-  {\noindent%
+{\noindent%
     % Arguments: None
     % Starts a new timetable
     %
     % Set the new layout setting
-    \setlength{\@totalheight}{-\value{@rowcount}\@rowheight}%
-    \setlength{\@totalwidth}{\value{@colcount}\@colwidth}%
+    \setlength{\@canvaswidth}{\@slotwidth*\value{@colcount}}%
+    \setlength{\@canvasheight}{\@slotheight*\value{@rowcount}}%
+    \setlength{\@totalwidth}{\@canvaswidth+\@legendwidth}%
+    \setlength{\@totalheight}{\@canvasheight+\@legendheight}%
     %
     % Reset the counters
-    \setcounter{@timemarks}{\value{@topheight}}%
-    \setcounter{@daymarks}{1}%
+    \setcounter{@timemarks}{0}%
+    \setcounter{@daymarks}{0}%
     %
     % Minipage to correct bounding box
-    \begin{minipage}[t][-\@totalheight]{\@totalwidth}
-    %
-    % Begin. Note the offset hack of the picture, this is to make it consistent to the old pstricks package. 
-    \begin{picture}(\strip@pt\@totalwidth,\strip@pt\@totalheight)(0,-\strip@pt\baselineskip)
-      % Draw the grey frame
-      \put(0,\strip@pt\@totalheight){\textcolor{ttframecol1}{\rule[-\dp\strutbox]{\@colwidth}{-\@totalheight}}}
-      \setlength{\@toprowheight}{\value{@topheight}\@rowheight}
-      \put(0,-\strip@pt\@toprowheight){\textcolor{ttframecol1}{\rule[-\dp\strutbox]{\@totalwidth}{\@toprowheight}}}
-  }
-  {
-      % Draw the contours
-      % Inner
-      \addtolength{\@colwidth}{-1pt}
-      \put(\strip@pt\@colwidth,-\strip@pt\@toprowheight){\textcolor{ttlinecol2}{\rule[-\dp\strutbox]{\@totalwidth-\@colwidth+1pt}{1pt}}}
-      \put(\strip@pt\@colwidth,\strip@pt\@totalheight){\textcolor{ttlinecol2}{\rule[-\dp\strutbox]{1pt}{-\@totalheight-\@toprowheight}}}
-      \addtolength{\@colwidth}{1pt}
+    \begin{minipage}[t][\@totalheight]{\@totalwidth}
 
-      % Outer
-      \put(0,0){\textcolor{ttlinecol1}{\rule[-\dp\strutbox]{\@totalwidth}{1pt}}}
-      \put(0,\strip@pt\@totalheight){\textcolor{ttlinecol1}{\rule[-\dp\strutbox]{1pt}{-\@totalheight}}}
-      \put(\strip@pt\@totalwidth,\strip@pt\@totalheight){\textcolor{ttlinecol1}{\rule[-\dp\strutbox]{1pt}{-\@totalheight+1pt}}}
-      \addtolength{\@totalheight}{-0.5pt}
-      \put(0,\strip@pt\@totalheight){\textcolor{ttlinecol1}{\rule[-\dp\strutbox]{\@totalwidth}{1pt}}}
-      \addtolength{\@totalheight}{0.5pt}
-    \end{picture}
+    % Begin. Note the offset hack of the picture
+        \begin{picture}(\strip@pt\@totalwidth,\strip@pt\@totalheight)(-\strip@pt\@legendwidth,-\strip@pt\@canvasheight)
+        % Draw the legend background
+        \putrule{-\@legendwidth}{-\@canvasheight}{\@legendwidth}{\@totalheight}{ttlegendcolor}     % left bar
+        \putrule{           0cm}{            0cm}{\@canvaswidth}{\@legendheight}{ttlegendcolor}    % top bar
+}
+{
+        % Draw the contours (frame borders)
+        % Inner
+        \putrule{0cm}{-\@canvasheight}{\@innerborderstrength}{\@canvasheight}{ttinnerbordercolor}     % left border
+        \putrule{0cm}{            0cm}{\@canvaswidth}{\@innerborderstrength}{ttinnerbordercolor}      % top border
+
+        % Outer
+        \putrule{-\@legendwidth}{\@legendheight}{\@totalwidth}{\@outerborderstrength}{ttouterbordercolor}  % top
+        \putrule{-\@legendwidth}{-\@canvasheight}{\@outerborderstrength}{\@totalheight}{ttouterbordercolor}% left
+        \putrule{\@canvaswidth}{-\@canvasheight}{\@outerborderstrength}{\@totalheight}{ttouterbordercolor} % right
+        \putrule{-\@legendwidth}{-\@canvasheight}{\@totalwidth}{\@outerborderstrength}{ttouterbordercolor} % bottom
+        \end{picture}
 
     \end{minipage}
-  }
+}
+
+
+
+%--------------------------------------------------
+% other algorithms
+%-------------------------------------------------- 
+
+% Simple for loop construct as proposed by N. Setzer
+\newcommand{\@ttforloop}[5][1]
+{
+    % Arguments:  [step]{counter}{startvalue}{condition}{loop body}
+    \setcounter{#2}{#3}
+    \ifthenelse{#4}
+    {
+        #5
+        \addtocounter{#2}{#1}
+        \@ttforloop[#1]{#2}{\value{#2}}{#4}{#5}
+    }
+    {}
+}
+\def\calcgcd#1#2{%
+    \ifnum#2>0 \calcgcd{#2}{\intcalcMod{#1}{#2}}\else#1\fi
+}
+
+
+\newlength{\@puthelpx}
+\newlength{\@puthelpy}
+\def\easyput#1#2#3{% x,y, content
+    \setlength{\@puthelpx}{#1}%
+    \setlength{\@puthelpy}{#2}%
+    \put(\strip@pt\@puthelpx,\strip@pt\@puthelpy){#3}%
+}
+
+\def\putrule#1#2#3#4#5{% x,y,  width,height, color
+    \easyput{#1}{#2}{\textcolor{#5}{\rule{#3}{#4}}}%
+}
+
+\def\putminipage#1#2#3#4#5{% x,y, w,h, content
+    \easyput{#1}{#2}{%
+        \begin{minipage}[t][#4]{#3}%
+            #5%
+        \end{minipage}%
+    }%
+}
+
