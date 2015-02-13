@@ -3,7 +3,7 @@
 ## How it's going to look like
 
 An example how a timetable created with this LaTeX package (v.1.41) looks like:
-![sample for the style of the timetable](http://img444.imageshack.us/img444/3129/sampletimetable.png)
+![sample for the style of the timetable](example.png)
 
 ## Overview
 
