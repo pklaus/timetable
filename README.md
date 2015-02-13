@@ -7,9 +7,7 @@ An example how a timetable created with this LaTeX package (v.1.41) looks like:
 
 ## Overview
 
-This is the latest version 1.41 of a LaTeX package for creating one-week timetables as they can frequently be found in universities or schools. It contains bugfixes to 1.4.
-
-New features of this version are pdfLaTeX compatibility, and several design extensions. This package is fully interface compatible to documents created under version 1.3, and contains all amendments proposed by Daniel Bader. Like its predecessor, however, it is unfortunately incompatible to versions 1.1 and 1.2.
+This is the latest version 1.41 of a LaTeX package for creating one-week timetables as they are frequently needed in universities or schools.
 
 ## Website
 
@@ -24,8 +22,6 @@ You can compile the timetable to PDF via LaTeX and PostScript:
 and directly with pdfLaTeX
 
     pdflatex example.tex
-
-The package additionally contains a PDF manual with explanations and examples. Please note again that this package does not work with documents using the old syntax of versions 1.1 and 1.2 (which you might still find on the net).
 
 ## License
 
