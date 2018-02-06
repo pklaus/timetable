@@ -57,6 +57,9 @@
 \newlength{\@totalwidth}
 \newlength{\@toprowheight}
 
+\newlength{\@ystart}
+\newlength{\@xstart}
+
 % Arbitrary stuff
 \newcounter{@timemarks}
 \newcounter{@daymarks}
@@ -95,6 +98,8 @@
 \newcounter{@durationslots}
 \newcounter{@minutesperslot}
 \newcounter{@timetablehelp}
+
+
 
 \newcounter{@day}
 \newcounter{@column}
@@ -506,6 +511,53 @@
       \ifthenelse{\value{@day} > 7}{\addtocounter{@day}{-7}}{}
     }
   }
+  
+\newcommand{\frenchdays}[1]
+  {
+    % Arguments: <number of start day>
+    % Macro for the french week days
+
+    \setcounter{@day}{#1}
+
+    \@ttforloop{@column}{1}{\value{@column} < \value{@colcount}}
+    {
+      \ifthenelse{\equal{\value{@day}}1}{\daymark{Lundi}}{}
+      \ifthenelse{\equal{\value{@day}}2}{\daymark{Mardi}}{}
+      \ifthenelse{\equal{\value{@day}}3}{\daymark{Mercredi}}{}
+      \ifthenelse{\equal{\value{@day}}4}{\daymark{Jeudi}}{}
+      \ifthenelse{\equal{\value{@day}}5}{\daymark{Vendredi}}{}
+      \ifthenelse{\equal{\value{@day}}6}{\daymark{Samedi}}{}
+      \ifthenelse{\equal{\value{@day}}7}{\daymark{Dimanche}}{}
+
+      \stepcounter{@day}
+      \ifthenelse{\value{@day} > 7}{\addtocounter{@day}{-7}}{}
+    }
+  }
+
+\newcommand{\drawgrid}
+{
+      % draw vertical lines
+      \setlength{\@xstart}{2\@colwidth}
+      \@ttforloop{@column}{2}{\value{@column} < \value{@colcount}}
+    {
+		\put(\strip@pt\@xstart,\strip@pt\@totalheight){\textcolor{ttlinecol2}{\rule[-\dp\strutbox]{1pt}{-\@totalheight-\@toprowheight}}}
+		\setlength{\@xstart}{\@xstart+\@colwidth}
+    }
+    
+    % draw horizontal lines
+    \setcounter{@minute}{0}
+    \setlength{\@ystart}{\@toprowheight}
+    \@ttforloop{@row}{\value{@topheight}}{\value{@row} < \value{@rowcount}}
+    {
+      \ifthenelse{\value{@minute} = 0}{
+        \put(\strip@pt\@colwidth,-\strip@pt\@ystart){\textcolor{ttlinecol2}{\rule[-\dp\strutbox]{\@totalwidth-\@colwidth+1pt}{1pt}}}
+	  }{}
+	  \addtocounter{@minute}{ \value{@minuteStep} }
+	  \setlength{\@ystart}{\@ystart+\@rowheight}
+	  \ifthenelse{\value{@minute} = 60}{\setcounter{@minute}{0}}{}
+    }
+  }
+
 
 \newenvironment{timetable}%
   {\noindent%

@@ -1,18 +1,18 @@
 \documentclass[a4paper,10pt]{report}
 
 % Definitions
+\usepackage[utf8]{inputenc}
 \usepackage{lscape}
-\usepackage[height=25cm]{geometry}
+\usepackage[a4paper,margin=1in,landscape]{geometry}
 \usepackage{timetable}
 
 \begin{document}
 \thispagestyle{empty}
-\begin{landscape}
 \noindent\printheading{Time table $6^\mathsf{th}$ Semester}
 
 % Define the layout of your time tables
-\setslotsize{2.8cm}{0.3cm}
-\setslotcount {5} {36}
+\setslotsize{4cm}{0.3cm}
+\setslotcount {5} {44}
 \settopheight{3}
 \settextframe{0.8mm}
 
@@ -32,8 +32,10 @@
 
 % Start the time table
 \begin{timetable}
-  \hours{9}{15}{1}
-  \englishdays{1}
+  \hours{8}{15}{1}
+  %~ \englishdays{1}
+  \frenchdays{1}
+  \drawgrid
   \event 1 {1415} {1600} {Data Networks Lecture}                  {Druschel}        {E1{\tiny 3} 002}     {corelecture}
   \event 1 {1615} {1800} {Tutorial SysArch}                       {Gwosdek}         {E1{\tiny 3} SR014}   {work}
   \event 2 {0915} {1100} {Embedded Systems Lecture}               {Finkbeiner}      {E1{\tiny 3} 003}     {corelecture}
@@ -46,5 +48,4 @@
   \event 5 {1000} {1100} {Bremser Meeting}                        {SysArch United}  {E1{\tiny 3}}         {work}
   \event 5 {1115} {1300} {Differential Equations in IPCV Lecture} {Weickert}        {E1{\tiny 3} 001}     {corelecture}
 \end{timetable}
-\end{landscape}
 \end{document}          

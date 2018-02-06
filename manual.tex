@@ -7,7 +7,7 @@
 \usepackage{timetable}
 \usepackage{bold-extra}
 
-\lstset{language=[LaTeX]TeX, basicstyle=\ttfamily, basewidth=0.51em, morekeywords={\settopheight, \setbottomspace, \setbottomstyle, \settimestyle, \setprinttimestamps, \printheading,\setslotsize,\setslotcount,\settextframe,\englishdays,\germandays,\timemark,\daymark,\hours,\event,\defineevent,\slotevent,\setframetype,\seteventcornerradius}}
+\lstset{language=[LaTeX]TeX, basicstyle=\ttfamily, basewidth=0.51em, morekeywords={\settopheight, \setbottomspace, \setbottomstyle, \settimestyle, \setprinttimestamps, \printheading,\setslotsize,\setslotcount,\settextframe,\englishdays,\germandays,\frenchdays,\timemark,\daymark,\hours,\event,\defineevent,\slotevent,\setframetype,\seteventcornerradius}}
 
 \title{\texttt{timetable} package for \LaTeX\\\normalsize Version 1.41}
 \author{Pascal Gwosdek\\\small Modifications by Daniel Bader}
@@ -51,6 +51,7 @@ In addition, one may redefine the following default colours:
 Furthermore, one may influence the shape of the output font:
 \begin{description}
 \item \lstinline!\timetablefont! can be redefined with something else than \lstinline!\sffamily!.
+\item \lstinline!\drawgrid! draws a grid sperating days and hours.
 \end{description}
 
 \subsubsection{Event types}\label{defineevent}
@@ -90,9 +91,13 @@ is the analogon to the \lstinline{\timemark} macro, while
 \begin{lstlisting}
 \englishdays{Start day}
 \end{lstlisting}
-or
+,
 \begin{lstlisting}
 \germandays{Start day}
+\end{lstlisting}
+or
+\begin{lstlisting}
+\frenchdays{Start day}
 \end{lstlisting}
 fills the row with day names, starting at the day given as argument (where 1 denotes monday). Again, see the reference in Appendix A to see what it looks like.
 
@@ -135,6 +140,7 @@ Each of these macros specifies one event block in position, duration (i.e. lengt
 \begin{timetable}
   \hours{9}{15}{1}
   \englishdays{1}
+  \drawgrid
   \event 1 {1415} {1600} {Data Networks Lecture}                  {Druschel}        {E1{\tiny 3} 002}     {corelecture}
   \event 1 {1615} {1800} {Tutorial SysArch}                       {Gwosdek}         {E1{\tiny 3} SR014}   {work}
   \event 2 {0915} {1100} {Embedded Systems Lecture}               {Finkbeiner}      {E1{\tiny 3} 003}     {corelecture}
@@ -179,6 +185,7 @@ Each of these macros specifies one event block in position, duration (i.e. lengt
 \begin{timetable}
   \hours{9}{15}{1}
   \englishdays{1}
+  \drawgrid
   \event 1 {1415} {1600} {Data Networks Lecture}                  {Druschel}        {E1{\tiny 3} 002}     {corelecture}
   \event 1 {1615} {1800} {Tutorial SysArch}                       {Gwosdek}         {E1{\tiny 3} SR014}   {work}
   \event 2 {0915} {1100} {Embedded Systems Lecture}               {Finkbeiner}      {E1{\tiny 3} 003}     {corelecture}
